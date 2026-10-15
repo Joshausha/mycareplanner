@@ -18,6 +18,13 @@ const meldScope = "patient/Goal.write patient/Practitioner.read patient/CareTeam
 const meldmatch = "https://gw.interop.community/"+process.env.REACT_APP_MELD_SANDBOX_NAME+"/data"
 
 
+// Local smart-launcher sandbox (sandbox/docker-compose.yml). Opt-in: set
+// REACT_APP_LOCAL_LAUNCHER_ISS=http://localhost:8090/v/r4/fhir (client id and scope optional).
+// Unset => no entry is added and behaviour is unchanged.
+const localLauncherIss = process.env.REACT_APP_LOCAL_LAUNCHER_ISS
+const localLauncherScope = process.env.REACT_APP_LOCAL_LAUNCHER_SCOPE
+        || "launch launch/patient openid fhirUser patient/*.read"
+
 const availableEndpoints = [
     {
         // OHSU FHIR dev
@@ -124,6 +131,20 @@ const availableEndpoints = [
         pkceMode: "unsafeV1"
     }
 ]
+
+if (localLauncherIss) {
+    // Launcher iss may be the plain base (/v/r4/fhir) or a simulated one (/v/r4/sim/<cfg>/fhir),
+    // so match on the shared /v/r4 prefix. Unshifted so it wins over the generic /\bR4\b/ entry.
+    const localLauncherPrefix = localLauncherIss.replace(/\/fhir\/?$/, "")
+    availableEndpoints.unshift(
+      {
+        issMatch: iss => iss.startsWith(localLauncherPrefix),
+        redirectUri: "./index.html",
+        clientId: process.env.REACT_APP_CLIENT_ID_local_launcher || "my_web_app",
+        scope: localLauncherScope
+      }
+    )
+  }
 
 if (process.env.REACT_APP_SHARED_DATA_CLIENT_ID
         && process.env.REACT_APP_SHARED_DATA_ENDPOINT && process.env.REACT_APP_SHARED_DATA_SCOPE) {
